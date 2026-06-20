@@ -113,21 +113,22 @@
         .player-item { display: flex; align-items: center; padding: 6px 0; font-weight: 600; border-bottom: 1px solid #171b22; }
         .empty-msg { color: #555; font-style: italic; font-size: 0.9rem; margin-top: 10px; }
 
-        /* FIXED: Image container reads standard URL structures with no CSS compiler breaks */
+        /* Icon formatting structure optimized for local folder assets */
         .class-icon {
             width: 28px;
             height: 28px;
             margin-right: 12px;
             border-radius: 50%;
-            background-size: 100% 100%;
+            background-size: cover;
             background-position: center;
             background-repeat: no-repeat;
             display: inline-block;
             box-shadow: 0 0 5px rgba(0,0,0,0.8);
+            border: 1px solid rgba(255,209,0,0.2);
             vertical-align: middle;
         }
 
-        /* Official World of Warcraft Faction/Class Text Colors */
+        /* Official World of Warcraft Class Color Specifications */
         .class-warrior { color: #C69B6D; } .class-paladin { color: #F48CBA; } .class-hunter { color: #AAD372; }
         .class-rogue { color: #FFF468; } .class-priest { color: #FFFFFF; } .class-shaman { color: #0070DE; }
         .class-mage { color: #3FC7EB; } .class-warlock { color: #8788EE; } .class-druid { color: #FF7C0A; }
@@ -138,18 +139,17 @@
         let currentUserId = null;
         let activeRosterData = [];
 
-        // FIXED: Pure Base64 unblockable vector text strings matching your exact circular shapes
+        // FIXED: Dynamically paths your selection directly to your local PC "icons" subfolder
         const classIcons = {
-            druid: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI0NiIgZmlsbD0iIzFhMGUwMyIgc3Ryb2tlPSIjQzY5QjZEIiBzdHJva2Utd2lkdGg9IjQiLz48cGF0aCBkPSJNMzAgNDAgUTUwIDE1IDcwIDQwUTUwIDg1IDMwIDQwIFoiIGZpbGw9IiNGRjdDMEEiLz48cGF0aCBkPSJNMzAgNDAgTDcwIDQwIiBzdHJva2U9IiMxYTBlMDMiIHN0cm9rZS13aWR0aD0iNCIvPjwvc3ZnPg==",
-            hunter: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI0NiIgZmlsbD0iIzBkMTQwOCIgc3Ryb2tlPSIjQUFEMzcyIiBzdHJva2Utd2lkdGg9IjQiLz48cGF0aCBkPSJNMzAzMCBRNzUgMzAgNzAgNzAgTTMwIDMwIEw1NSA1NSBNMjUgNzUgTDc1IDI1IiBzdHJva2U9IiNBQUQzNzIiIHN0cm9rZS13aWR0aD0iNyIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBmaWxsPSJub25lIi8+PC9zdmc+",
-            mage: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI0NiIgZmlsbD0iIzA1MTQxYSIgc3Ryb2tlPSIjM0ZDN0VCIiBzdHJva2Utd2lkdGg9IjQiLz48cGF0aCBkPSJNNTAgMTUgTDgwIDY1IEwyMCA2NSBaIiBmaWxsPSIjM0ZDN0VCIi8+PGNpcmNsZSBjeD0iNTAiIGN5PSI1MCIgcj0iMTAiIGZpbGw9IiMwNTE0MWEiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIzIi8+PC9zdmc+",
-            paladin: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI0NiIgZmlsbD0iIzFhMDgxMSIgc3Ryb2tlPSIjRjQ4Q0JBIiBzdHJva2Utd2lkdGg9IjQiLz48cGF0aCBkPSJNMzUgNzAgTDM1IDQwIEw2NSA0MCBMNjUgNzAgWiBNNTAgMjUgTDUwIDQwIE0zNSA0NSBMNjUgNDAiIHN0cm9rZT0iI0Y0OENCQSIgc3Ryb2tlLXdpZHRoPSI4IiBzdHJva2UtbGluZWNhcD0icm91bmQiIGZpbGw9Im5vbmUiLz48cmVjdCB4PSI0MiIgeT0iNDgiIHdpZHRoPSIxNiIgaGVpZ2h0PSIyMiIgZmlsbD0iI0Y0OENCQSIvPjwvc3ZnPg==",
-            priest: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI0NiIgZmlsbD0iIzFmMWYxZiIgc3Ryb2tlPSIjVkZGRkZGIiBzdHJva2Utd2lkdGg9IjQiLz48cGF0aCBkPSJNNTAgMjAgTDUwIDgwIE0yNSA0MCBMNzUgNDAiIHN0cm9rZT0iI1ZGRkZGRiIgc3Ryb2tlLXdpZHRoPSI5IiBzdHJva2UtbGluZWNhcD0icm91bmQiLz48Y2lyY2xlIGN4PSI1MCIgY3k9IjQwIiByPSI4IiBmaWxsPSIjMTExIiBzdHJva2U9IiNGRkYiIHN0cm9rZS13aWR0aD0iMyIvPjwvc3ZnPg==",
-            rogue: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI0NiIgZmlsbD0iIzFhMTkwNSIgc3Ryb2tlPSIjRkZGNDY4IiBzdHJva2Utd2lkdGg9IjQiLz48cGF0aCBkPSJNMzUgMjUgTDUwIDU1IEw2NSAyNSBNNTAgNTUgTDUwIDgwIiBzdHJva2U9IiNGRkY0NjgiIHN0cm9rZS13aWR0aD0iOCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBmaWxsPSJub25lIi8+PHBhdGggZD0iTTMwIDI1IEw3MCAyNSIgc3Ryb2tlPSIjNjM1ZTA3IiBzdHJva2Utd2lkdGg9IjYiLz48L3N2Zz4=",
-            shaman: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI0NiIgZmlsbD0iIzAzMGQxYSIgc3Ryb2tlPSIjMDA3MERFIiBzdHJva2Utd2lkdGg9IjQiLz48cGF0aCBkPSJNNTAgMjAgTDMwIDQ1IEw0MCA0NSBMMjUgNzUgTDc1IDc1IEw2MCA0NSBMNzAgNDAgWiIgZmlsbD0iIzAwNzBERSIgc3Ryb2tlPSIjMDA3MERFIiBzdHJva2Utd2lkdGg9IjMiLz48cGF0aCBkPSJNNDUgMzUgTDU1IDM1IE00MCA1NSBMNjAgNTUiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSI0Ii8+PC9zdmc+",
-            warlock: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI0NiIgZmlsbD0iIzBkMGQxYSIgc3Ryb2tlPSIjODc4OEVFIiBzdHJva2Utd2lkdGg9IjQiLz48cGF0aCBkPSJNMzAgMzAgTDUwIDc1IEw3MCAzMCBNNDAgNTAgTDYwIDUwIiBzdHJva2U9IiM4Nzg4RUUiIHN0cm9rZS13aWR0aD0iOCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBmaWxsPSJub25lIi8+PGNpcmNsZSBjeD0iNTAiIGN5PSIyNSIgcj0iNyIgZmlsbD0iIzg3ODhFRSIvPjwvc3ZnPg==",
-            warrior: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI0NiIgZmlsbD0iIzFhMTEwYiIgc3Ryb2tlPSIjQzY5QjZEIiBzdHJva2Utd2lkdGg9IjQiLz48cGF0aCBkPSJNMzAgNzAgTDcwIDMwIE0zNSAyNSBMNzUgNjUgTTUwIDIwIEw1MCA4MCIgc3Ryb2tlPSIjQzY5QjZEIiBzdHJva2Utd2lkdGg9IjgiIHN0cm9rZS1kYXNoYXJyYXk9Im5vbmUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjxjaXJjbGUgY3g9IjUwIiBjeT0iMzUiIHI9IjEwIiBmaWxsPSIjNmU1MzM3IiBzdHJva2U9IiNDNjlCNkQiIHN0cm9rZS13aWR0aD0iMyIvPjwvc3ZnPg==",
-            unknown: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI0NiIgZmlsbD0iIzIyMiIgc3Ryb2tlPSIjNDQ0IiBzdHJva2Utd2lkdGg9IjQiLz48dGV4dCB5PSI2NSIgeD0iNTAiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjUwIiBmaWxsPSIjNjY2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj4/PC90ZXh0Pjwvc3ZnPg=="
+            druid: "./images/druid.png",
+            hunter: "./images/hunt.png",
+            mage: "./images/mage.png",
+            paladin: "./images/pala.png",
+            priest: "./images/priest.png",
+            rogue: "./images/rogue.png",
+            shaman: "./images/shaman.png",
+            warlock: "./images/wlock.png",
+            warrior: "./images/warr.png",
         };
 
         function init() {
@@ -171,6 +171,7 @@
                 queueChannel.postMessage({ type: 'REQUEST_SYNC' });
             }, 3000);
         }
+
         function updateDashboardDisplays() {
             const alliancePlayers = activeRosterData.filter(p => p.faction === 'Alliance');
             const hordePlayers = activeRosterData.filter(p => p.faction === 'Horde');
