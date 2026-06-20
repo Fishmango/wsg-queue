@@ -209,6 +209,14 @@
             if (!username) return alert("Please enter your character name!");
             if (!chosenClass) return alert("Please select your character class!");
 
+            // FEATURE: Classic WoW Faction Restrictive Checks
+            if (chosenClass === "Paladin" && faction === "Horde") {
+                return alert("Error: Paladins can only join the Alliance forces!");
+            }
+            if (chosenClass === "Shaman" && faction === "Alliance") {
+                return alert("Error: Shamans can only join the Horde forces!");
+            }
+
             let customId = localStorage.getItem('wsg_mesh_user_id');
             if (!customId) {
                 customId = 'char_' + Math.random().toString(36).substr(2, 9);
