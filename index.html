@@ -6,6 +6,8 @@
     <title>29's Queue Tracker</title>
     <!-- Google Fonts classic retro display -->
     <link href="https://googleapis.com" rel="stylesheet">
+    <!-- Pusher Cloud Realtime Core Engine -->
+    <script src="https://pusher.com"></script>
 </head>
 <body>
     <div class="container">
@@ -74,7 +76,8 @@
                 </div>
             </div>
         </div>
-        <style>
+    </div>
+    <style>
         body { background-color: #0b0c0d; background-image: radial-gradient(circle, #15181c 0%, #050607 100%); color: #ffd100; font-family: 'Open Sans', sans-serif; text-align: center; padding: 40px 20px; margin: 0; }
         .container { max-width: 650px; margin: 0 auto; background: #121417; padding: 30px; border-radius: 6px; border: 2px solid #3a3324; box-shadow: 0px 10px 30px rgba(0,0,0,0.7); position: relative;}
         .factions { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 25px 0; }
@@ -102,9 +105,8 @@
         .player-item { display: flex; align-items: center; justify-content: space-between; padding: 6px 0; font-weight: 600; border-bottom: 1px solid #171b22; }
         .empty-msg { color: #555; font-style: italic; font-size: 0.9rem; margin-top: 10px; }
         .class-icon { width: 28px; height: 28px; margin-right: 12px; border-radius: 50%; background-size: cover; background-position: center; background-repeat: no-repeat; display: inline-block; box-shadow: 0 0 5px rgba(0,0,0,0.8); border: 1px solid rgba(255,209,0,0.2); vertical-align: middle; }
-        
-        /* New styling elements */
         .time-badge { font-size: 0.75rem; color: #666; font-weight: normal; font-style: italic; padding-right: 2px; }
+        
         #match-banner { background: linear-gradient(90deg, rgba(179,146,0,0) 0%, rgba(179,146,0,0.2) 50%, rgba(179,146,0,0) 100%); border-top: 1px solid #ffd100; border-bottom: 1px solid #ffd100; color: #ffd100; font-family: 'Cinzel', serif; font-size: 1.1rem; font-weight: bold; padding: 10px 0; margin-bottom: 25px; animation: pulseGlow 2s infinite alternate; letter-spacing: 1px; }
         @keyframes pulseGlow { 0% { text-shadow: 0 0 5px rgba(255,209,0,0.3); background-color: rgba(179,146,0,0.05); } 100% { text-shadow: 0 0 15px rgba(255,209,0,0.8); background-color: rgba(179,146,0,0.2); } }
 
@@ -114,7 +116,12 @@
         .class-mage { color: #3FC7EB; } .class-warlock { color: #8788EE; } .class-druid { color: #FF7C0A; }
     </style>
     <script>
-        const queueChannel = new BroadcastChannel('wsg_global_mesh_queue');
+        // Injecting your active Pusher configuration credentials
+        const PUSHER_KEY = "a46e28615788528d2135";
+        const PUSHER_CLUSTER = "eu";
+
+        let pusherClient = null;
+        let cloudChannel = null;
         let currentUserId = null;
         let activeRosterData = [];
         let afkCheckInterval = null;
@@ -127,25 +134,30 @@
         };
 
         function init() {
+            // Initialize global cloud listener channels
+            pusherClient = new Pusher(PUSHER_KEY, { cluster: PUSHER_CLUSTER });
+            cloudChannel = pusherClient.subscribe('wsg-mesh-global-channel');
+
             const savedData = localStorage.getItem('wsg_mesh_db');
             activeRosterData = savedData ? JSON.parse(savedData) : [];
             
             updateDashboardDisplays();
             checkLocalSession();
 
-            queueChannel.onmessage = (event) => {
-                if (event.data && event.data.type === 'SYNC_ROSTER') {
-                    activeRosterData = event.data.payload;
+            // Intercept data synchronization signals sent over the global internet pipeline
+            cloudChannel.bind('SYNC_ROSTER', function(data) {
+                if (data && data.payload) {
+                    activeRosterData = data.payload;
                     localStorage.setItem('wsg_mesh_db', JSON.stringify(activeRosterData));
                     updateDashboardDisplays();
                 }
-            };
+            });
 
+            // Handle backup query sync loops
             setInterval(() => {
-                queueChannel.postMessage({ type: 'REQUEST_SYNC' });
-                updateDashboardDisplays();
-                checkAfkTimeout();
-            }, 5000);
+                updateDashboardDisplays(); // Updates character timer badges live
+                checkAfkTimeout();          // Prunes idle connections
+            }, 4000);
         }
 
         function updateDashboardDisplays() {
@@ -177,7 +189,6 @@
 
             players.sort((a, b) => a.joined_at - b.joined_at);
 
-            // FEATURE: Roster list looping with overflow bench monitoring
             players.forEach((player, index) => {
                 const playerClass = player.player_class || 'Unknown';
                 const classLower = playerClass.toLowerCase();
@@ -198,7 +209,7 @@
                 `;
                 listContainer.appendChild(playerDiv);
 
-                // FEATURE: Inject the gold bench divider exactly after the 10th player
+                // Waitlist divider algorithm hooks after the 10th spot
                 if (index === 9 && players.length > 10) {
                     const dividerDiv = document.createElement('div');
                     dividerDiv.style.margin = '15px 0 10px 0';
@@ -212,7 +223,7 @@
                     dividerLabel.style.top = '-9px';
                     dividerLabel.style.left = '50%';
                     dividerLabel.style.transform = 'translateX(-50%)';
-                    dividerLabel.style.background = '#0d0f12'; // Matches .roster-col background
+                    dividerLabel.style.background = '#0d0f12';
                     dividerLabel.style.padding = '0 10px';
                     dividerLabel.style.fontSize = '0.7rem';
                     dividerLabel.style.color = '#666';
@@ -224,14 +235,13 @@
                 }
             });
         }
-        function signIn(faction) {
+        async function signIn(faction) {
             const username = document.getElementById('username').value.trim();
             const chosenClass = document.getElementById('player-class').value;
 
             if (!username) return alert("Please enter your character name!");
             if (!chosenClass) return alert("Please select your character class!");
 
-            // FEATURE: Classic WoW Faction Restrictive Checks
             if (chosenClass === "Paladin" && faction === "Horde") {
                 return alert("Error: Paladins can only join the Alliance!");
             }
@@ -248,17 +258,16 @@
 
             activeRosterData = activeRosterData.filter(p => p.id !== currentUserId);
 
-            // Saves data entry including current system time stamp anchor values
             activeRosterData.push({
                 id: currentUserId,
                 username: username,
                 faction: faction,
                 player_class: chosenClass,
                 joined_at: Date.now(),
-                last_active: Date.now() // Tracked for AFK limits
+                last_active: Date.now()
             });
 
-            syncDataAndBroadcast();
+            await syncAndPushToCloud();
             
             localStorage.setItem('wsg_mesh_name', username);
             localStorage.setItem('wsg_mesh_faction', faction);
@@ -266,14 +275,14 @@
 
             showQueuedState(username, faction, chosenClass);
             updateDashboardDisplays();
-            startAfkClock(); // Launch local client inactivity verification loop
+            startAfkClock();
         }
 
-        function leaveQueue() {
+        async function leaveQueue() {
             if (!currentUserId) return;
 
             activeRosterData = activeRosterData.filter(p => p.id !== currentUserId);
-            syncDataAndBroadcast();
+            await syncAndPushToCloud();
 
             currentUserId = null;
             localStorage.removeItem('wsg_mesh_name');
@@ -287,7 +296,6 @@
             updateDashboardDisplays();
         }
 
-        // FEATURE 3: 30-Minute AFK Timeout & local warning management
         function startAfkClock() {
             clearInterval(afkCheckInterval);
             
@@ -298,7 +306,7 @@
                 if (!me) return;
 
                 const elapsedMs = Date.now() - me.last_active;
-                const remainingSecs = Math.max(0, 1800 - Math.floor(elapsedMs / 1000)); // 30 minutes in seconds
+                const remainingSecs = Math.max(0, 1800 - Math.floor(elapsedMs / 1000));
 
                 const warningLabel = document.getElementById('afk-warning-text');
                 
@@ -314,34 +322,42 @@
             }, 1000);
         }
 
-        function refreshActivityState() {
+        async function refreshActivityState() {
             if (!currentUserId) return;
             const me = activeRosterData.find(p => p.id === currentUserId);
             if (me) {
                 me.last_active = Date.now();
-                syncDataAndBroadcast();
+                await syncAndPushToCloud();
                 alert("Your queue status has been extended for another 30 minutes!");
             }
         }
 
-        // Loops through and clears out any other peer profiles whose activity markers have expired
-        function checkAfkTimeout() {
+        async function checkAfkTimeout() {
             const beforeLength = activeRosterData.length;
-            // Filter out anyone who has been completely silent for longer than 30.5 minutes
             activeRosterData = activeRosterData.filter(p => {
                 const idleMs = Date.now() - (p.last_active || Date.now());
-                return idleMs < 1830000; 
+                return idleMs < 1830000;
             });
 
             if (activeRosterData.length !== beforeLength) {
-                localStorage.setItem('wsg_mesh_db', JSON.stringify(activeRosterData));
-                updateDashboardDisplays();
+                await syncAndPushToCloud();
             }
         }
 
-        function syncDataAndBroadcast() {
+        // Channels array rows out instantly via cloud routing gateways
+        async function syncAndPushToCloud() {
             localStorage.setItem('wsg_mesh_db', JSON.stringify(activeRosterData));
-            queueChannel.postMessage({ type: 'SYNC_ROSTER', payload: activeRosterData });
+            
+            // Client-side secure webhook proxy pipeline syncing layout matrices
+            try {
+                await fetch("https://vercel.app", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ payload: activeRosterData })
+                });
+            } catch (e) {
+                console.log("Cloud sync stream handled locally.");
+            }
         }
 
         function checkLocalSession() {
@@ -353,7 +369,7 @@
             if (localId && localName && localFaction && localClass) {
                 currentUserId = localId;
                 showQueuedState(localName, localFaction, localClass);
-                startAfkClock(); // Restarts timeout monitoring check loop on app refresh
+                startAfkClock();
             }
         }
 
