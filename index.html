@@ -13,12 +13,11 @@
     <link rel="preconnect" href="https://gstatic.com" crossorigin>
     <link href="https://googleapis.com/css2?family=Cinzel:wght@700;800&family=Open+Sans:ital,wght@0,600;1,600&display=swap" rel="stylesheet">
     
-    <!-- Official Supabase JavaScript Client CDN (FIXED) -->
-    <script src="https://cloudflare.com"></script>
+    <!-- Official Universal Supabase Client Assembly Bundle -->
+    <script src="https://unpkg.com"></script>
 </head>
 <body>
     <div class="container">
-        <!-- Match Banner Notification Area -->
         <div id="match-banner" class="hidden">BATTLE FOR WARSONG GULCH IS ACTIVE!</div>
         
         <h1>29's Queue Tracker</h1>
@@ -244,7 +243,6 @@
     };
 
     async function init() {
-        // Safe global evaluation loop targeting explicit window components
         if (window.supabase && window.supabase.createClient) {
             dbClient = window.supabase.createClient(CONF_URL, CONF_KEY);
             console.log("Supabase driver initialized successfully!");
@@ -257,7 +255,6 @@
         updateDashboardDisplays();
         checkLocalSession();
 
-        // Safe background loops: checks data layouts and inactive rows every 8 seconds
         setInterval(() => {
             updateDashboardDisplays(); 
             checkAfkTimeout();          
@@ -345,7 +342,7 @@
             }
         });
     }
-async function signIn(faction) { 
+ async function signIn(faction) { 
         if (!dbClient) return; 
         
         const username = document.getElementById('username').value.trim(); 
@@ -354,7 +351,6 @@ async function signIn(faction) {
         if (!username) return alert("Please enter your character name!"); 
         if (!chosenClass) return alert("Please select your character class!"); 
         
-        // Classic WoW Faction Rules
         if (chosenClass === "Paladin" && faction === "Horde") { 
             return alert("Error: Paladins can only join the Alliance!"); 
         } 
@@ -369,7 +365,6 @@ async function signIn(faction) {
         } 
         currentUserId = customId; 
 
-        // Flush past active user cache instances cleanly
         await dbClient.from('wsg_queue').delete().eq('id', currentUserId); 
 
         const { error: dbError } = await dbClient.from('wsg_queue').insert({ 
@@ -451,7 +446,6 @@ async function signIn(faction) {
         } 
     } 
 
-    // FIXED: Now accurately scales and drops inactive rows cleanly without network strain
     async function checkAfkTimeout() { 
         if (!dbClient || activeRosterData.length === 0) return; 
         
@@ -459,7 +453,6 @@ async function signIn(faction) {
             const lastActiveTime = new Date(p.last_active).getTime(); 
             const idleMs = Date.now() - lastActiveTime; 
             
-            // 30.5 minutes inactivity sweep threshold
             if (idleMs > 1830000) { 
                 await dbClient.from('wsg_queue').delete().eq('id', p.id); 
             } 
