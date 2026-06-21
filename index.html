@@ -115,8 +115,7 @@
         .class-rogue { color: #FFF468; } .class-priest { color: #FFFFFF; } .class-shaman { color: #0070DE; }
         .class-mage { color: #3FC7EB; } .class-warlock { color: #8788EE; } .class-druid { color: #FF7C0A; }
     </style>
-    <script>
-        // Injecting your active Pusher configuration credentials
+<script>
         const PUSHER_KEY = "a46e28615788528d2135";
         const PUSHER_CLUSTER = "eu";
 
@@ -134,9 +133,9 @@
         };
 
         function init() {
-            // Initialize global cloud listener channels
+            // FIXED: Using cache- prefix allows serverless, direct client-to-client broadcasts
             pusherClient = new Pusher(PUSHER_KEY, { cluster: PUSHER_CLUSTER });
-            cloudChannel = pusherClient.subscribe('wsg-mesh-global-channel');
+            cloudChannel = pusherClient.subscribe('cache-wsg-global-channel');
 
             const savedData = localStorage.getItem('wsg_mesh_db');
             activeRosterData = savedData ? JSON.parse(savedData) : [];
@@ -144,8 +143,8 @@
             updateDashboardDisplays();
             checkLocalSession();
 
-            // Intercept data synchronization signals sent over the global internet pipeline
-            cloudChannel.bind('SYNC_ROSTER', function(data) {
+            // Listen for direct sync triggers from other devices on the internet
+            cloudChannel.bind('client-sync-roster', function(data) {
                 if (data && data.payload) {
                     activeRosterData = data.payload;
                     localStorage.setItem('wsg_mesh_db', JSON.stringify(activeRosterData));
@@ -153,10 +152,24 @@
                 }
             });
 
-            // Handle backup query sync loops
+            // When a new device opens the page, it whispers a request for data
+            cloudChannel.bind('client-request-sync', function() {
+                if (activeRosterData.length > 0) {
+                    // Send our data list out so the new device matches us
+                    cloudChannel.trigger('client-sync-roster', { payload: activeRosterData });
+                }
+            });
+
+            // Once connected, ask any open windows across the world for the current list
+            pusherClient.connection.bind('connected', () => {
+                setTimeout(() => {
+                    cloudChannel.trigger('client-request-sync', {});
+                }, 1000);
+            });
+
             setInterval(() => {
-                updateDashboardDisplays(); // Updates character timer badges live
-                checkAfkTimeout();          // Prunes idle connections
+                updateDashboardDisplays(); 
+                checkAfkTimeout();          
             }, 4000);
         }
 
@@ -209,7 +222,6 @@
                 `;
                 listContainer.appendChild(playerDiv);
 
-                // Waitlist divider algorithm hooks after the 10th spot
                 if (index === 9 && players.length > 10) {
                     const dividerDiv = document.createElement('div');
                     dividerDiv.style.margin = '15px 0 10px 0';
@@ -235,7 +247,7 @@
                 }
             });
         }
-        async function signIn(faction) {
+        function signIn(faction) {
             const username = document.getElementById('username').value.trim();
             const chosenClass = document.getElementById('player-class').value;
 
@@ -267,7 +279,7 @@
                 last_active: Date.now()
             });
 
-            await syncAndPushToCloud();
+            syncAndPushToCloud();
             
             localStorage.setItem('wsg_mesh_name', username);
             localStorage.setItem('wsg_mesh_faction', faction);
@@ -278,11 +290,11 @@
             startAfkClock();
         }
 
-        async function leaveQueue() {
+        function leaveQueue() {
             if (!currentUserId) return;
 
             activeRosterData = activeRosterData.filter(p => p.id !== currentUserId);
-            await syncAndPushToCloud();
+            syncAndPushToCloud();
 
             currentUserId = null;
             localStorage.removeItem('wsg_mesh_name');
@@ -322,17 +334,17 @@
             }, 1000);
         }
 
-        async function refreshActivityState() {
+        function refreshActivityState() {
             if (!currentUserId) return;
             const me = activeRosterData.find(p => p.id === currentUserId);
             if (me) {
                 me.last_active = Date.now();
-                await syncAndPushToCloud();
+                syncAndPushToCloud();
                 alert("Your queue status has been extended for another 30 minutes!");
             }
         }
 
-        async function checkAfkTimeout() {
+        function checkAfkTimeout() {
             const beforeLength = activeRosterData.length;
             activeRosterData = activeRosterData.filter(p => {
                 const idleMs = Date.now() - (p.last_active || Date.now());
@@ -340,23 +352,16 @@
             });
 
             if (activeRosterData.length !== beforeLength) {
-                await syncAndPushToCloud();
+                syncAndPushToCloud();
             }
         }
 
-        // Channels array rows out instantly via cloud routing gateways
-        async function syncAndPushToCloud() {
+        // FIXED: Direct client-to-client cloud trigger bypasses the broken Vercel server loop entirely
+        function syncAndPushToCloud() {
             localStorage.setItem('wsg_mesh_db', JSON.stringify(activeRosterData));
             
-            // Client-side secure webhook proxy pipeline syncing layout matrices
-            try {
-                await fetch("https://vercel.app", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ payload: activeRosterData })
-                });
-            } catch (e) {
-                console.log("Cloud sync stream handled locally.");
+            if (cloudChannel && pusherClient.connection.state === 'connected') {
+                cloudChannel.trigger('client-sync-roster', { payload: activeRosterData });
             }
         }
 
