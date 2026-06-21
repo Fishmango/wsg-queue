@@ -226,8 +226,8 @@
     .class-druid { color: #FF7C0A; }
 </style>
 <script>
-    // ⚠️ CRITICAL: Replace 'your-project-id' with your actual Supabase Project Reference URL
-    const CONF_URL = "https://supabase.co";
+    // ✅ CONNECTED: Injected your precise project reference endpoint link
+    const CONF_URL = "https://xydnxwogbqkvpgjbtzje.supabase.co";
     const CONF_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5ZG54d29nYnFrdnBnamJ0emplIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE5NzkwODQsImV4cCI6MjA5NzU1NTA4NH0.GpDSAVpeYZNmN6Nbu4uVuPIbZY9Q09TYw37q1MNKVSc";
     
     let dbClient = null;
@@ -342,7 +342,7 @@
             }
         });
     }
- async function signIn(faction) { 
+async function signIn(faction) { 
         if (!dbClient) return; 
         
         const username = document.getElementById('username').value.trim(); 
@@ -450,10 +450,10 @@
         if (!dbClient || activeRosterData.length === 0) return; 
         
         for (const p of activeRosterData) {
-            const lastActiveTime = new Date(p.last_active).getTime(); 
+            const lastActiveTime = p.last_active ? new Date(p.last_active).getTime() : 0; 
             const idleMs = Date.now() - lastActiveTime; 
             
-            if (idleMs > 1830000) { 
+            if (lastActiveTime && idleMs > 1830000) { 
                 await dbClient.from('wsg_queue').delete().eq('id', p.id); 
             } 
         }
