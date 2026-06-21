@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>29's BG Tracker</title>
+    <title>29's Queue Tracker</title>
     <!-- Google Fonts classic retro display -->
     <link href="https://googleapis.com" rel="stylesheet">
 </head>
@@ -12,7 +12,7 @@
         <!-- Match Banner Notification Area -->
         <div id="match-banner" class="hidden">BATTLE FOR WARSONG GULCH IS ACTIVE!</div>
 
-        <h1>29's Battleground Tracker</h1>
+        <h1>29's Queue Tracker</h1>
         <div class="factions">
             <div class="faction-card alliance">
                 <div>Alliance</div>
@@ -123,7 +123,7 @@
             druid: "./images/druid.png", hunter: "./images/hunt.png", mage: "./images/mage.png", 
             paladin: "./images/pala.png", priest: "./images/priest.png", rogue: "./images/rogue.png", 
             shaman: "./images/shaman.png", warlock: "./images/wlock.png", warrior: "./images/warr.png",
-            unknown: "./images/unknown.png" // Fixed your missing property fallback bug
+            unknown: "./images/unknown.png"
         };
 
         function init() {
@@ -141,11 +141,10 @@
                 }
             };
 
-            // Periodic sync check and active time tracking clock update
             setInterval(() => {
                 queueChannel.postMessage({ type: 'REQUEST_SYNC' });
-                updateDashboardDisplays(); // Forces elapsed time badges to count up live
-                checkAfkTimeout();          // Checks if someone else has timed out locally
+                updateDashboardDisplays();
+                checkAfkTimeout();
             }, 5000);
         }
 
@@ -156,7 +155,6 @@
             document.getElementById('ally-count').innerText = alliancePlayers.length;
             document.getElementById('horde-count').innerText = hordePlayers.length;
 
-            // FEATURE 1: Check for active matchmaking popups (10v10 baseline)
             const banner = document.getElementById('match-banner');
             if (alliancePlayers.length >= 10 && hordePlayers.length >= 10) {
                 banner.classList.remove('hidden');
@@ -173,19 +171,18 @@
             listContainer.innerHTML = '';
 
             if (players.length === 0) {
-                listContainer.innerHTML = '<div class="empty-msg">Noone queued</div>';
+                listContainer.innerHTML = '<div class="empty-msg">None queued</div>';
                 return;
             }
 
-            // Sort roster so players waiting the longest appear at the top
             players.sort((a, b) => a.joined_at - b.joined_at);
 
-            players.forEach(player => {
+            // FEATURE: Roster list looping with overflow bench monitoring
+            players.forEach((player, index) => {
                 const playerClass = player.player_class || 'Unknown';
                 const classLower = playerClass.toLowerCase();
                 const iconUrl = classIcons[classLower] || classIcons.unknown;
 
-                // FEATURE 2: Calculate waiting timestamp badge duration
                 const elapsedMs = Date.now() - (player.joined_at || Date.now());
                 const elapsedMins = Math.floor(elapsedMs / 60000);
                 const timeString = elapsedMins <= 0 ? 'just now' : `${elapsedMins}m ago`;
@@ -200,6 +197,31 @@
                     <span class="time-badge">${timeString}</span>
                 `;
                 listContainer.appendChild(playerDiv);
+
+                // FEATURE: Inject the gold bench divider exactly after the 10th player
+                if (index === 9 && players.length > 10) {
+                    const dividerDiv = document.createElement('div');
+                    dividerDiv.style.margin = '15px 0 10px 0';
+                    dividerDiv.style.borderTop = '2px dashed #ffd100';
+                    dividerDiv.style.position = 'relative';
+                    dividerDiv.style.textAlign = 'center';
+                    
+                    const dividerLabel = document.createElement('span');
+                    dividerLabel.innerText = 'WAITLIST / BENCH';
+                    dividerLabel.style.position = 'absolute';
+                    dividerLabel.style.top = '-9px';
+                    dividerLabel.style.left = '50%';
+                    dividerLabel.style.transform = 'translateX(-50%)';
+                    dividerLabel.style.background = '#0d0f12'; // Matches .roster-col background
+                    dividerLabel.style.padding = '0 10px';
+                    dividerLabel.style.fontSize = '0.7rem';
+                    dividerLabel.style.color = '#666';
+                    dividerLabel.style.letterSpacing = '1px';
+                    dividerLabel.style.fontWeight = 'bold';
+
+                    dividerDiv.appendChild(dividerLabel);
+                    listContainer.appendChild(dividerDiv);
+                }
             });
         }
         function signIn(faction) {
