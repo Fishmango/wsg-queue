@@ -8,16 +8,14 @@
     <!-- Prevent harmless 404 favicon logs -->
     <link rel="icon" href="data:,">
     
-    <!-- Google Fonts classic retro display -->
+    <!-- Clean Google Fonts classic retro display -->
     <link rel="preconnect" href="https://googleapis.com">
     <link rel="preconnect" href="https://gstatic.com" crossorigin>
     <link href="https://googleapis.com/css2?family=Cinzel:wght@700;800&family=Open+Sans:ital,wght@0,600;1,600&display=swap" rel="stylesheet">
-    
-    <!-- Official Universal Supabase Client Assembly Bundle -->
-    <script src="https://unpkg.com"></script>
 </head>
 <body>
     <div class="container">
+        <!-- Match Banner Notification Area -->
         <div id="match-banner" class="hidden">BATTLE FOR WARSONG GULCH IS ACTIVE!</div>
         
         <h1>29's Queue Tracker</h1>
@@ -226,8 +224,8 @@
     .class-druid { color: #FF7C0A; }
 </style>
 <script>
-    // ✅ CONNECTED: Injected your precise project reference endpoint link
-    const CONF_URL = "https://xydnxwogbqkvpgjbtzje.supabase.co";
+    // Exact URL configured specifically for your native database table operations
+    const CONF_URL = "https://xydnxwogbqkvpgjbtzje.supabase.co/rest/v1/wsg_queue";
     const CONF_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5ZG54d29nYnFrdnBnamJ0emplIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE5NzkwODQsImV4cCI6MjA5NzU1NTA4NH0.GpDSAVpeYZNmN6Nbu4uVuPIbZY9Q09TYw37q1MNKVSc";
     
     let dbClient = null;
@@ -242,30 +240,45 @@
         unknown: "./images/unknown.png"
     };
 
-    async function init() {
-        if (window.supabase && window.supabase.createClient) {
-            dbClient = window.supabase.createClient(CONF_URL, CONF_KEY);
-            console.log("Supabase driver initialized successfully!");
-        } else {
-            console.warn("Supabase script not quite ready, retrying in 500ms...");
-            setTimeout(init, 500);
-            return;
+    // Zero-dependency native request utility
+    async function supabaseFetch(urlQuery = "", options = {}) {
+        const url = CONF_URL + urlQuery;
+        
+        // Converts the data body into a valid JSON string before sending
+        if (options.body && typeof options.body === 'object') {
+            options.body = JSON.stringify(options.body);
         }
 
+        const headers = {
+            "apikey": CONF_KEY,
+            "Authorization": `Bearer ${CONF_KEY}`,
+            "Content-Type": "application/json",
+            "Prefer": "return=representation",
+            ...options.headers
+        };
+        try {
+            const response = await fetch(url, { ...options, headers });
+            if (!response.ok) throw new Error(await response.text());
+            return response.status === 204 ? { data: true } : { data: await response.json() };
+        } catch (err) {
+            console.error("Database communication failure:", err);
+            return { error: err };
+        }
+    }
+
+    function init() {
+        console.log("🚀 SUCCESS: Standard Native fetch architecture engine active!");
         updateDashboardDisplays();
         checkLocalSession();
 
-        setInterval(() => {
-            updateDashboardDisplays(); 
-            checkAfkTimeout();          
-        }, 8000);
+        // Standard background updates to keep the queue rolling
+        setInterval(updateDashboardDisplays, 5000);
+        setInterval(checkAfkTimeout, 15000);
     }
 
     async function updateDashboardDisplays() {
-        if (!dbClient) return;
-        
-        const { data, error } = await dbClient.from('wsg_queue').select('*');
-        if (error) return console.error(error);
+        const { data, error } = await supabaseFetch("?select=*");
+        if (error) return;
 
         activeRosterData = data || [];
         
@@ -343,8 +356,6 @@
         });
     }
 async function signIn(faction) { 
-        if (!dbClient) return; 
-        
         const username = document.getElementById('username').value.trim(); 
         const chosenClass = document.getElementById('player-class').value; 
         
@@ -365,21 +376,22 @@ async function signIn(faction) {
         } 
         currentUserId = customId; 
 
-        await dbClient.from('wsg_queue').delete().eq('id', currentUserId); 
+        // Flush past active user cache instances natively
+        await supabaseFetch(`?id=eq.${currentUserId}`, { method: "DELETE" });
 
-        const { error: dbError } = await dbClient.from('wsg_queue').insert({ 
-            id: currentUserId, 
-            username: username, 
-            faction: faction, 
-            player_class: chosenClass, 
-            joined_at: new Date().toISOString(), 
-            last_active: new Date().toISOString() 
-        }); 
+        const { error: dbError } = await supabaseFetch("", {
+            method: "POST",
+            body: {
+                id: currentUserId,
+                username: username,
+                faction: faction,
+                player_class: chosenClass,
+                joined_at: new Date().toISOString(),
+                last_active: new Date().toISOString()
+            }
+        });
 
-        if (dbError) { 
-            console.error(dbError); 
-            return alert("Queue Error: Database transaction rejected."); 
-        } 
+        if (dbError) return alert("Queue Error: Database transaction rejected. Check table configurations."); 
 
         localStorage.setItem('wsg_mesh_name', username); 
         localStorage.setItem('wsg_mesh_faction', faction); 
@@ -391,9 +403,9 @@ async function signIn(faction) {
     } 
 
     async function leaveQueue() { 
-        if (!dbClient || !currentUserId) return; 
+        if (!currentUserId) return; 
         
-        await dbClient.from('wsg_queue').delete().eq('id', currentUserId); 
+        await supabaseFetch(`?id=eq.${currentUserId}`, { method: "DELETE" });
         
         currentUserId = null; 
         localStorage.removeItem('wsg_mesh_name'); 
@@ -434,11 +446,12 @@ async function signIn(faction) {
     } 
 
     async function refreshActivityState() { 
-        if (!dbClient || !currentUserId) return; 
+        if (!currentUserId) return; 
         
-        const { error } = await dbClient.from('wsg_queue') 
-            .update({ last_active: new Date().toISOString() }) 
-            .eq('id', currentUserId); 
+        const { error } = await supabaseFetch(`?id=eq.${currentUserId}`, {
+            method: "PATCH",
+            body: { last_active: new Date().toISOString() }
+        });
             
         if (!error) { 
             alert("Your queue status has been extended for another 30 minutes!"); 
@@ -447,14 +460,14 @@ async function signIn(faction) {
     } 
 
     async function checkAfkTimeout() { 
-        if (!dbClient || activeRosterData.length === 0) return; 
+        if (activeRosterData.length === 0) return; 
         
         for (const p of activeRosterData) {
             const lastActiveTime = p.last_active ? new Date(p.last_active).getTime() : 0; 
             const idleMs = Date.now() - lastActiveTime; 
             
             if (lastActiveTime && idleMs > 1830000) { 
-                await dbClient.from('wsg_queue').delete().eq('id', p.id); 
+                await supabaseFetch(`?id=eq.${p.id}`, { method: "DELETE" });
             } 
         }
     } 
