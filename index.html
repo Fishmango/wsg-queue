@@ -4,14 +4,246 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>29's Queue Tracker</title>
-    
     <!-- Prevent harmless 404 favicon logs -->
     <link rel="icon" href="data:,">
-    
     <!-- Clean Google Fonts classic retro display -->
     <link rel="preconnect" href="https://googleapis.com">
     <link rel="preconnect" href="https://gstatic.com" crossorigin>
     <link href="https://googleapis.com/css2?family=Cinzel:wght@700;800&family=Open+Sans:ital,wght@0,600;1,600&display=swap" rel="stylesheet">
+<style>
+        body { 
+            background-color: #0b0c0d; 
+            /* Horizontal and vertical grout lines to form subtle tiles */ 
+            background-image: 
+                linear-gradient(rgba(21, 24, 28, 0.4) 1px, transparent 1px), 
+                linear-gradient(90deg, rgba(21, 24, 28, 0.4) 1px, transparent 1px), 
+                /* Original glowing background core */ 
+                radial-gradient(circle, #15181c 0%, #050607 100%); 
+            /* Determines the size of each stone tile block */ 
+            background-size: 60px 60px, 60px 60px, 100% 100%; 
+            color: #ffd100; 
+            font-family: 'Open Sans', sans-serif; 
+            text-align: center; 
+            padding: 40px 20px; 
+            margin: 0; 
+        } 
+        .container { 
+            max-width: 650px; 
+            margin: 0 auto; 
+            background: #121417; 
+            padding: 30px; 
+            border-radius: 6px; 
+            border: 2px solid #3a3324; 
+            box-shadow: 0px 10px 30px rgba(0,0,0,0.7); 
+            position: relative; 
+        } 
+        .factions { 
+            display: grid; 
+            grid-template-columns: 1fr 1fr; 
+            gap: 20px; 
+            margin: 25px 0; 
+        } 
+        .faction-card { 
+            background: #1a1d23; 
+            padding: 15px; 
+            border-radius: 4px; 
+            border: 1px solid #2b303b; 
+        } 
+        .alliance { 
+            color: #0078ff; 
+            border-color: rgba(0, 120, 255, 0.3); 
+            text-shadow: 0 0 8px rgba(0, 120, 255, 0.4); 
+        } 
+        .horde { 
+            color: #ff3838; 
+            border-color: rgba(255, 56, 56, 0.3); 
+            text-shadow: 0 0 8px rgba(255, 56, 56, 0.4); 
+        } 
+        .count-num { 
+            font-family: 'Cinzel', serif; 
+            font-size: 3.5rem; 
+            font-weight: 800; 
+            display: block; 
+            margin-top: 5px; 
+        } 
+        input[type="text"], select { 
+            width: 80%; 
+            padding: 12px; 
+            background: #08090a; 
+            border: 1px solid #3a3324; 
+            color: #fff; 
+            font-size: 1rem; 
+            border-radius: 4px; 
+            margin-bottom: 15px; 
+            text-align: center; 
+            outline: none;
+        } 
+        select { 
+            text-align-last: center; 
+            cursor: pointer; 
+        } 
+        .btn-zone { 
+            display: flex; 
+            justify-content: space-around; 
+            gap: 15px; 
+            max-width: 80%;
+            margin: 0 auto;
+        } 
+        button { 
+            flex: 1; 
+            padding: 14px 20px; 
+            font-family: 'Cinzel', serif; 
+            font-size: 1rem; 
+            font-weight: bold; 
+            cursor: pointer; 
+            border-radius: 4px; 
+            border: 1px solid rgba(0,0,0,0.4); 
+            transition: transform 0.1s, filter 0.2s; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3); 
+        } 
+        button:hover { 
+            filter: brightness(1.2); 
+        } 
+        button:active { 
+            transform: scale(0.98); 
+        } 
+        .btn-alliance { 
+            background: linear-gradient(180deg, #0052b4 0%, #003375 100%); 
+            color: white; 
+        } 
+        .btn-horde { 
+            background: linear-gradient(180deg, #b41c1c 0%, #700f0f 100%); 
+            color: white; 
+        } 
+        .btn-refresh { 
+            background: linear-gradient(180deg, #ffd100 0%, #b39200 100%); 
+            color: #111; 
+        } 
+        .btn-ingame {
+            background: linear-gradient(180deg, #443388 0%, #221155 100%);
+            color: white;
+            border: 1px solid #6655aa;
+        }
+        .btn-ingame.active-state {
+            background: linear-gradient(180deg, #cc2222 0%, #880000 100%);
+            border: 1px solid #ff4444;
+        }
+        .btn-leave { 
+            background: #333; 
+            color: #bbb; 
+            border: 1px solid #444; 
+        } 
+        .hidden { 
+            display: none !important; 
+        } 
+        .status-msg { 
+            color: #888; 
+            font-style: italic; 
+            margin-bottom: 15px; 
+        } 
+        .roster-section { 
+            margin-top: 35px; 
+            border-top: 1px solid #3a3324; 
+            padding-top: 25px; 
+            text-align: left; 
+        } 
+        .roster-title { 
+            font-family: 'Cinzel', serif; 
+            font-size: 1.3rem; 
+            color: #ffd100; 
+            margin-bottom: 15px; 
+            text-align: center; 
+        } 
+        .roster-grid { 
+            display: grid; 
+            grid-template-columns: 1fr 1fr; 
+            gap: 20px; 
+        } 
+        .roster-col { 
+            background: #0d0f12; 
+            border-radius: 4px; 
+            border: 1px solid #23272f; 
+            padding: 15px; 
+            min-height: 120px; 
+        } 
+        .roster-col-title { 
+            font-family: 'Cinzel', serif; 
+            font-size: 1rem; 
+            margin-bottom: 10px; 
+            border-bottom: 1px dashed #3a3324; 
+            padding-bottom: 5px; 
+        } 
+        .player-item { 
+            display: flex; 
+            align-items: center; 
+            justify-content: space-between; 
+            padding: 6px 0; 
+            font-weight: 600; 
+            border-bottom: 1px solid #171b22; 
+        } 
+        .empty-msg { 
+            color: #555; 
+            font-style: italic; 
+            font-size: 0.9rem; 
+            margin-top: 10px; 
+        } 
+        .class-icon { 
+            width: 28px; 
+            height: 28px; 
+            margin-right: 12px; 
+            border-radius: 50%; 
+            background-size: cover; 
+            background-position: center; 
+            background-repeat: no-repeat; 
+            display: inline-block; 
+            box-shadow: 0 0 5px rgba(0,0,0,0.8); 
+            border: 1px solid rgba(255,209,0,0.2); 
+            vertical-align: middle; 
+        } 
+        .time-badge { 
+            font-size: 0.75rem; 
+            color: #666; 
+            font-weight: normal; 
+            font-style: italic; 
+            padding-right: 2px; 
+        } 
+        .sword-indicator {
+            margin-left: 6px;
+            font-size: 0.95rem;
+            display: inline-block;
+            animation: bounceSwords 1.5s infinite alternate;
+        }
+        @keyframes bounceSwords {
+            0% { transform: scale(1); }
+            100% { transform: scale(1.15); filter: drop-shadow(0 0 3px rgba(255,56,56,0.6)); }
+        }
+        #match-banner { 
+            background: linear-gradient(90deg, rgba(179,146,0,0) 0%, rgba(179,146,0,0.2) 50%, rgba(179,146,0,0) 100%); 
+            border-top: 1px solid #ffd100; 
+            border-bottom: 1px solid #ffd100; 
+            color: #ffd100; 
+            font-family: 'Cinzel', serif; 
+            font-size: 1.1rem; 
+            font-weight: bold; 
+            padding: 10px 0; 
+            margin-bottom: 25px; 
+            animation: pulseGlow 2s infinite alternate; 
+            letter-spacing: 1px; 
+        } 
+        @keyframes pulseGlow { 
+            0% { text-shadow: 0 0 5px rgba(255,209,0,0.3); background-color: rgba(179,146,0,0.05); } 
+            100% { text-shadow: 0 0 15px rgba(255,209,0,0.8); background-color: rgba(179,146,0,0.2); } 
+        } 
+        .class-warrior { color: #C69B6D; } 
+        .class-paladin { color: #F48CBA; } 
+        .class-hunter { color: #AAD372; } 
+        .class-rogue { color: #FFF468; } 
+        .class-priest { color: #FFFFFF; } 
+        .class-shaman { color: #0070DE; } 
+        .class-mage { color: #3FC7EB; } 
+        .class-warlock { color: #8788EE; } 
+        .class-druid { color: #FF7C0A; } 
+    </style>
 </head>
 <body>
     <div class="container">
@@ -61,9 +293,10 @@
                 Ready as: <span id="user-display"></span>
             </div>
             <div id="afk-warning-text" style="color: #ff3838; font-size: 0.9rem; margin-bottom: 10px; font-weight: bold;"></div>
-            <div class="btn-zone" style="max-width: 400px; margin: 0 auto;">
+            <div class="btn-zone" style="flex-direction: column; gap: 10px;">
                 <button class="btn-refresh" id="btn-refresh-queue">Still Active</button>
-                <button class="btn-leave" id="btn-leave-queue" style="margin-top: 0;">Leave Queue</button>
+                <button class="btn-ingame" id="btn-toggle-ingame">⚔️ In Game?</button>
+                <button class="btn-leave" id="btn-leave-queue">Leave Queue</button>
             </div>
         </div>
 
@@ -82,527 +315,316 @@
             </div>
         </div>
     </div>
-<style> 
-body { 
-    background-color: #0b0c0d; 
-    background-image: 
-        /* Horizontal and vertical grout lines to form subtle tiles */
-        linear-gradient(rgba(21, 24, 28, 0.4) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(21, 24, 28, 0.4) 1px, transparent 1px),
-        /* Your original glowing background core */
-        radial-gradient(circle, #15181c 0%, #050607 100%); 
-        
-    /* Determines the size of each stone tile block */
-    background-size: 60px 60px, 60px 60px, 100% 100%;
-    
-    color: #ffd100; 
-    font-family: 'Open Sans', sans-serif; 
-    text-align: center; 
-    padding: 40px 20px; 
-    margin: 0; 
-}
-
-.container { 
-    max-width: 650px; 
-    margin: 0 auto; 
-    background: #121417; 
-    padding: 30px; 
-    border-radius: 6px; 
-    border: 2px solid #3a3324; 
-    box-shadow: 0px 10px 30px rgba(0,0,0,0.7); 
-    position: relative; 
-} 
-
-.factions { 
-    display: grid; 
-    grid-template-columns: 1fr 1fr; 
-    gap: 20px; 
-    margin: 25px 0; 
-} 
-
-.faction-card { 
-    background: #1a1d23; 
-    padding: 15px; 
-    border-radius: 4px; 
-    border: 1px solid #2b303b; 
-} 
-
-.alliance { 
-    color: #0078ff; 
-    border-color: rgba(0, 120, 255, 0.3); 
-    text-shadow: 0 0 8px rgba(0, 120, 255, 0.4); 
-} 
-
-.horde { 
-    color: #ff3838; 
-    border-color: rgba(255, 56, 56, 0.3); 
-    text-shadow: 0 0 8px rgba(255, 56, 56, 0.4); 
-} 
-
-.count-num { 
-    font-family: 'Cinzel', serif; 
-    font-size: 3.5rem; 
-    font-weight: 800; 
-    display: block; 
-    margin-top: 5px; 
-} 
-
-input[type="text"], select { 
-    width: 80%; 
-    padding: 12px; 
-    background: #08090a; 
-    border: 1px solid #3a3324; 
-    color: #fff; 
-    font-size: 1rem; 
-    border-radius: 4px; 
-    margin-bottom: 15px; 
-    text-align: center; 
-} 
-
-select { 
-    text-align-last: center; 
-    cursor: pointer; 
-} 
-
-.btn-zone { 
-    display: flex; 
-    justify-content: space-around; 
-    gap: 15px; 
-} 
-
-button { 
-    flex: 1; 
-    padding: 14px 20px; 
-    font-family: 'Cinzel', serif; 
-    font-size: 1rem; 
-    font-weight: bold; 
-    cursor: pointer; 
-    border-radius: 4px; 
-    border: 1px solid rgba(0,0,0,0.4); 
-    transition: transform 0.1s, filter 0.2s; 
-    box-shadow: 0 4px 6px rgba(0,0,0,0.3); 
-} 
-
-button:hover { 
-    filter: brightness(1.2); 
-} 
-
-button:active { 
-    transform: scale(0.98); 
-} 
-
-.btn-alliance { 
-    background: linear-gradient(180deg, #0052b4 0%, #003375 100%); 
-    color: white; 
-} 
-
-.btn-horde { 
-    background: linear-gradient(180deg, #b41c1c 0%, #700f0f 100%); 
-    color: white; 
-} 
-
-.btn-refresh { 
-    background: linear-gradient(180deg, #ffd100 0%, #b39200 100%); 
-    color: #111; 
-} 
-
-.btn-leave { 
-    background: #333; 
-    color: #bbb; 
-    border: 1px solid #444; 
-    margin-top: 15px;
-} 
-
-.hidden { 
-    display: none !important; 
-} 
-
-.status-msg { 
-    color: #888; 
-    font-style: italic; 
-    margin-bottom: 15px; 
-} 
-
-.roster-section { 
-    margin-top: 35px; 
-    border-top: 1px solid #3a3324; 
-    padding-top: 25px; 
-    text-align: left; 
-} 
-
-.roster-title { 
-    font-family: 'Cinzel', serif; 
-    font-size: 1.3rem; 
-    color: #ffd100; 
-    margin-bottom: 15px; 
-    text-align: center; 
-} 
-
-.roster-grid { 
-    display: grid; 
-    grid-template-columns: 1fr 1fr; 
-    gap: 20px; 
-} 
-
-.roster-col { 
-    background: #0d0f12; 
-    border-radius: 4px; 
-    border: 1px solid #23272f; 
-    padding: 15px; 
-    min-height: 120px; 
-} 
-
-.roster-col-title { 
-    font-family: 'Cinzel', serif; 
-    font-size: 1rem; 
-    margin-bottom: 10px; 
-    border-bottom: 1px dashed #3a3324; 
-    padding-bottom: 5px; 
-} 
-
-.player-item { 
-    display: flex; 
-    align-items: center; 
-    justify-content: space-between; 
-    padding: 6px 0; 
-    font-weight: 600; 
-    border-bottom: 1px solid #171b22; 
-} 
-
-.empty-msg { 
-    color: #555; 
-    font-style: italic; 
-    font-size: 0.9rem; 
-    margin-top: 10px; 
-} 
-
-.class-icon { 
-    width: 28px; 
-    height: 28px; 
-    margin-right: 12px; 
-    border-radius: 50%; 
-    background-size: cover; 
-    background-position: center; 
-    background-repeat: no-repeat; 
-    display: inline-block; 
-    box-shadow: 0 0 5px rgba(0,0,0,0.8); 
-    border: 1px solid rgba(255,209,0,0.2); 
-    vertical-align: middle; 
-} 
-
-.time-badge { 
-    font-size: 0.75rem; 
-    color: #666; 
-    font-weight: normal; 
-    font-style: italic; 
-    padding-right: 2px; 
-} 
-
-#match-banner { 
-    background: linear-gradient(90deg, rgba(179,146,0,0) 0%, rgba(179,146,0,0.2) 50%, rgba(179,146,0,0) 100%); 
-    border-top: 1px solid #ffd100; 
-    border-bottom: 1px solid #ffd100; 
-    color: #ffd100; 
-    font-family: 'Cinzel', serif; 
-    font-size: 1.1rem; 
-    font-weight: bold; 
-    padding: 10px 0; 
-    margin-bottom: 25px; 
-    animation: pulseGlow 2s infinite alternate; 
-    letter-spacing: 1px; 
-} 
-
-@keyframes pulseGlow { 
-    0% { text-shadow: 0 0 5px rgba(255,209,0,0.3); background-color: rgba(179,146,0,0.05); } 
-    100% { text-shadow: 0 0 15px rgba(255,209,0,0.8); background-color: rgba(179,146,0,0.2); } 
-} 
-
-.class-warrior { color: #C69B6D; } 
-.class-paladin { color: #F48CBA; } 
-.class-hunter { color: #AAD372; } 
-.class-rogue { color: #FFF468; } 
-.class-priest { color: #FFFFFF; } 
-.class-shaman { color: #0070DE; } 
-.class-mage { color: #3FC7EB; } 
-.class-warlock { color: #8788EE; } 
-.class-druid { color: #FF7C0A; } 
-</style>
 <script>
-    // Exact URL configured specifically for your native database table operations
-    const CONF_URL = "https://xydnxwogbqkvpgjbtzje.supabase.co/rest/v1/wsg_queue";
-    const CONF_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5ZG54d29nYnFrdnBnamJ0emplIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE5NzkwODQsImV4cCI6MjA5NzU1NTA4NH0.GpDSAVpeYZNmN6Nbu4uVuPIbZY9Q09TYw37q1MNKVSc";
-    
-    let dbClient = null;
-    let currentUserId = null;
-    let activeRosterData = [];
-    let afkCheckInterval = null;
-
-    const classIcons = { 
-        druid: "./images/druid.png", hunter: "./images/hunt.png", mage: "./images/mage.png", 
-        paladin: "./images/pala.png", priest: "./images/priest.png", rogue: "./images/rogue.png", 
-        shaman: "./images/shaman.png", warlock: "./images/wlock.png", warrior: "./images/warr.png",
-        unknown: "./images/unknown.png"
-    };
-
-    // Zero-dependency native request utility
-    async function supabaseFetch(urlQuery = "", options = {}) {
-        const url = CONF_URL + urlQuery;
+        // Exact URL configured specifically for your native database table operations
+        const CONF_URL = "https://xydnxwogbqkvpgjbtzje.supabase.co/rest/v1/wsg_queue";
+        const CONF_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5ZG54d29nYnFrdnBnamJ0emplIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE5NzkwODQsImV4cCI6MjA5NzU1NTA4NH0.GpDSAVpeYZNmN6Nbu4uVuPIbZY9Q09TYw37q1MNKVSc";
         
-        // Converts the data body into a valid JSON string before sending
-        if (options.body && typeof options.body === 'object') {
-            options.body = JSON.stringify(options.body);
-        }
+        let currentUserId = null;
+        let activeRosterData = [];
+        let afkCheckInterval = null;
 
-        const headers = {
-            "apikey": CONF_KEY,
-            "Authorization": `Bearer ${CONF_KEY}`,
-            "Content-Type": "application/json",
-            "Prefer": "return=representation",
-            ...options.headers
+        const classIcons = {
+            druid: "./images/druid.png",
+            hunter: "./images/hunt.png",
+            mage: "./images/mage.png",
+            paladin: "./images/pala.png",
+            priest: "./images/priest.png",
+            rogue: "./images/rogue.png",
+            shaman: "./images/shaman.png",
+            warlock: "./images/wlock.png",
+            warrior: "./images/warr.png",
+            unknown: "./images/unknown.png"
         };
-        try {
-            const response = await fetch(url, { ...options, headers });
-            if (!response.ok) throw new Error(await response.text());
-            return response.status === 204 ? { data: true } : { data: await response.json() };
-        } catch (err) {
-            console.error("Database communication failure:", err);
-            return { error: err };
-        }
-    }
 
-    function init() {
-        console.log("🚀 SUCCESS: Standard Native fetch architecture engine active!");
-        updateDashboardDisplays();
-        checkLocalSession();
-
-        // Standard background updates to keep the queue rolling
-        setInterval(updateDashboardDisplays, 5000);
-        setInterval(checkAfkTimeout, 15000);
-    }
-
-    async function updateDashboardDisplays() {
-        const { data, error } = await supabaseFetch("?select=*");
-        if (error) return;
-
-        activeRosterData = data || [];
-        
-        const alliancePlayers = activeRosterData.filter(p => p.faction === 'Alliance');
-        const hordePlayers = activeRosterData.filter(p => p.faction === 'Horde');
-
-        document.getElementById('ally-count').innerText = alliancePlayers.length;
-        document.getElementById('horde-count').innerText = hordePlayers.length;
-
-        const banner = document.getElementById('match-banner');
-        if (alliancePlayers.length >= 10 && hordePlayers.length >= 10) {
-            banner.classList.remove('hidden');
-        } else {
-            banner.classList.add('hidden');
+        // Zero-dependency native request utility
+        async function supabaseFetch(urlQuery = "", options = {}) {
+            const url = CONF_URL + urlQuery;
+            if (options.body && typeof options.body === 'object') {
+                options.body = JSON.stringify(options.body);
+            }
+            const headers = {
+                "apikey": CONF_KEY,
+                "Authorization": `Bearer ${CONF_KEY}`,
+                "Content-Type": "application/json",
+                "Prefer": "return=representation",
+                ...options.headers
+            };
+            try {
+                const response = await fetch(url, { ...options, headers });
+                if (!response.ok) throw new Error(await response.text());
+                return response.status === 204 ? { data: true } : { data: await response.json() };
+            } catch (err) {
+                console.error("Database communication failure:", err);
+                return { error: err };
+            }
         }
 
-        renderRosterColumn('alliance-list', alliancePlayers);
-        renderRosterColumn('horde-list', hordePlayers);
-    }
-
-    function renderRosterColumn(elementId, players) {
-        const listContainer = document.getElementById(elementId);
-        listContainer.innerHTML = '';
-
-        if (players.length === 0) {
-            listContainer.innerHTML = '<div class="empty-msg">None queued</div>';
-            return;
+        function init() {
+            console.log("🚀 SUCCESS: Standard Native fetch architecture engine active!");
+            updateDashboardDisplays();
+            checkLocalSession();
+            setInterval(updateDashboardDisplays, 5000);
+            setInterval(checkAfkTimeout, 15000);
         }
 
-        players.sort((a, b) => new Date(a.joined_at) - new Date(b.joined_at));
+        async function updateDashboardDisplays() {
+            const { data, error = null } = await supabaseFetch("?select=*");
+            if (error) return;
+            activeRosterData = data || [];
+            
+            const alliancePlayers = activeRosterData.filter(p => p.faction === 'Alliance');
+            const hordePlayers = activeRosterData.filter(p => p.faction === 'Horde');
+            
+            document.getElementById('ally-count').innerText = alliancePlayers.length;
+            document.getElementById('horde-count').innerText = hordePlayers.length;
+            
+            const banner = document.getElementById('match-banner');
+            if (alliancePlayers.length >= 10 && hordePlayers.length >= 10) {
+                banner.classList.remove('hidden');
+            } else {
+                banner.classList.add('hidden');
+            }
+            
+            renderRosterColumn('alliance-list', alliancePlayers);
+            renderRosterColumn('horde-list', hordePlayers);
+            
+            if (currentUserId) {
+                const me = activeRosterData.find(p => p.id === currentUserId);
+                const gameBtn = document.getElementById('btn-toggle-ingame');
+                if (me && gameBtn) {
+                    if (me.is_in_game) {
+                        gameBtn.innerText = "⚔️ Leave Game?";
+                        gameBtn.classList.add('active-state');
+                    } else {
+                        gameBtn.innerText = "⚔️ In Game?";
+                        gameBtn.classList.remove('active-state');
+                    }
+                }
+            }
+        }
 
-        players.forEach((player, index) => {
-            const playerClass = player.player_class || 'Unknown';
-            const classLower = playerClass.toLowerCase();
-            const iconUrl = classIcons[classLower] || classIcons.unknown;
-
-            const elapsedMs = Date.now() - new Date(player.joined_at).getTime();
-            const elapsedMins = Math.floor(elapsedMs / 60000);
-            const timeString = elapsedMins <= 0 ? 'just now' : `${elapsedMins}m ago`;
-
-            const playerDiv = document.createElement('div');
-            playerDiv.className = `player-item class-${classLower}`;
-            playerDiv.innerHTML = `
-                <div style="display: flex; align-items: center;">
-                    <div class="class-icon" style="background-image: url('${iconUrl}');"></div>
-                    <span>${player.username}</span>
-                </div>
-                <span class="time-badge">${timeString}</span>
-            `;
-            listContainer.appendChild(playerDiv);
-
-            if (index === 9 && players.length > 10) {
-                const dividerDiv = document.createElement('div');
-                dividerDiv.style.margin = '15px 0 10px 0';
-                dividerDiv.style.borderTop = '2px dashed #ffd100';
-                dividerDiv.style.position = 'relative';
-                dividerDiv.style.textAlign = 'center';
+        function renderRosterColumn(elementId, players) {
+            const listContainer = document.getElementById(elementId);
+            listContainer.innerHTML = '';
+            
+            if (players.length === 0) {
+                listContainer.innerHTML = '<div class="empty-msg">None queued</div>';
+                return;
+            }
+            
+            players.sort((a, b) => new Date(a.joined_at) - new Date(b.joined_at));
+            
+            players.forEach((player, index) => {
+                const playerClass = player.player_class || 'Unknown';
+                const classLower = playerClass.toLowerCase();
+                const iconUrl = classIcons[classLower] || classIcons.unknown;
                 
-                const dividerLabel = document.createElement('span');
-                dividerLabel.innerText = 'WAITLIST / BENCH';
-                dividerLabel.style.position = 'absolute';
-                dividerLabel.style.top = '-9px';
-                dividerLabel.style.left = '50%';
-                dividerLabel.style.transform = 'translateX(-50%)';
-                dividerLabel.style.background = '#0d0f12';
-                dividerLabel.style.padding = '0 10px';
-                dividerLabel.style.fontSize = '0.7rem';
-                dividerLabel.style.color = '#666';
-                dividerLabel.style.letterSpacing = '1px';
-                dividerLabel.style.fontWeight = 'bold';
-
-                dividerDiv.appendChild(dividerLabel);
-                listContainer.appendChild(dividerDiv);
-            }
-        });
-    }
-async function signIn(faction) { 
-        const username = document.getElementById('username').value.trim(); 
-        const chosenClass = document.getElementById('player-class').value; 
-        
-        if (!username) return alert("Please enter your character name!"); 
-        if (!chosenClass) return alert("Please select your character class!"); 
-        
-        if (chosenClass === "Paladin" && faction === "Horde") { 
-            return alert("Error: Paladins can only join the Alliance!"); 
-        } 
-        if (chosenClass === "Shaman" && faction === "Alliance") { 
-            return alert("Error: Shamans can only join the Horde!"); 
-        } 
-
-        let customId = localStorage.getItem('wsg_mesh_user_id'); 
-        if (!customId) { 
-            customId = 'char_' + Math.random().toString(36).substr(2, 9); 
-            localStorage.setItem('wsg_mesh_user_id', customId); 
-        } 
-        currentUserId = customId; 
-
-        // Flush past active user cache instances natively
-        await supabaseFetch(`?id=eq.${currentUserId}`, { method: "DELETE" });
-
-        const { error: dbError } = await supabaseFetch("", {
-            method: "POST",
-            body: {
-                id: currentUserId,
-                username: username,
-                faction: faction,
-                player_class: chosenClass,
-                joined_at: new Date().toISOString(),
-                last_active: new Date().toISOString()
-            }
-        });
-
-        if (dbError) return alert("Queue Error: Database transaction rejected. Check table configurations."); 
-
-        localStorage.setItem('wsg_mesh_name', username); 
-        localStorage.setItem('wsg_mesh_faction', faction); 
-        localStorage.setItem('wsg_mesh_class', chosenClass); 
-
-        showQueuedState(username, faction, chosenClass); 
-        updateDashboardDisplays(); 
-        startAfkClock(); 
-    } 
-
-    async function leaveQueue() { 
-        if (!currentUserId) return; 
-        
-        await supabaseFetch(`?id=eq.${currentUserId}`, { method: "DELETE" });
-        
-        currentUserId = null; 
-        localStorage.removeItem('wsg_mesh_name'); 
-        localStorage.removeItem('wsg_mesh_faction'); 
-        localStorage.removeItem('wsg_mesh_class'); 
-        
-        clearInterval(afkCheckInterval); 
-        document.getElementById('afk-warning-text').innerText = ''; 
-        document.getElementById('auth-section').classList.remove('hidden'); 
-        document.getElementById('queued-section').classList.add('hidden'); 
-        
-        updateDashboardDisplays(); 
-    } 
-
-    function startAfkClock() { 
-        clearInterval(afkCheckInterval); 
-        afkCheckInterval = setInterval(async () => { 
-            if (!currentUserId) return; 
-            
-            const me = activeRosterData.find(p => p.id === currentUserId); 
-            if (!me) return; 
-            
-            const lastActiveTime = new Date(me.last_active).getTime(); 
-            const elapsedMs = Date.now() - lastActiveTime; 
-            const remainingSecs = Math.max(0, 3600 - Math.floor(elapsedMs / 1000)); 
-            const warningLabel = document.getElementById('afk-warning-text'); 
-            
-            if (remainingSecs <= 0) { 
-                alert("You have been removed from the queue due to 1 hour of inactivity."); 
-                leaveQueue(); 
-            } else if (remainingSecs <= 60) { 
-                warningLabel.innerText = `Inactivity warning: Removing in ${remainingSecs}s! Click 'Still Active' to reset.`; 
-            } else { 
-                const remainingMins = Math.ceil(remainingSecs / 60); 
-                warningLabel.innerText = `AFK Auto-Timeout in: ${remainingMins}m`; 
-            } 
-        }, 1000); 
-    } 
-
-    async function refreshActivityState() { 
-        if (!currentUserId) return; 
-        
-        const { error } = await supabaseFetch(`?id=eq.${currentUserId}`, {
-            method: "PATCH",
-            body: { last_active: new Date().toISOString() }
-        });
-            
-        if (!error) { 
-            alert("Your queue status has been extended for another hour!"); 
-            updateDashboardDisplays(); 
-        } 
-    } 
-
-    async function checkAfkTimeout() { 
-        if (activeRosterData.length === 0) return; 
-        
-        for (const p of activeRosterData) {
-            const lastActiveTime = p.last_active ? new Date(p.last_active).getTime() : 0; 
-            const idleMs = Date.now() - lastActiveTime; 
-            
-            if (lastActiveTime && idleMs > 3660000) { 
-                await supabaseFetch(`?id=eq.${p.id}`, { method: "DELETE" });
-            } 
+                const elapsedMs = Date.now() - new Date(player.joined_at).getTime();
+                const elapsedMins = Math.floor(elapsedMs / 60000);
+                const timeString = elapsedMins <= 0 ? 'just now' : `${elapsedMins}m ago`;
+                
+                const swordMarkup = player.is_in_game ? '<span class="sword-indicator">⚔️</span>' : '';
+                
+                const playerDiv = document.createElement('div');
+                playerDiv.className = `player-item class-${classLower}`;
+                playerDiv.innerHTML = `
+                    <div style="display: flex; align-items: center;">
+                        <div class="class-icon" style="background-image: url('${iconUrl}');"></div>
+                        <span>${player.username}${swordMarkup}</span>
+                    </div>
+                    <span class="time-badge">${timeString}</span>
+                `;
+                listContainer.appendChild(playerDiv);
+                
+                if (index === 9 && players.length > 10) {
+                    const dividerDiv = document.createElement('div');
+                    dividerDiv.style.margin = '15px 0 10px 0';
+                    dividerDiv.style.borderTop = '2px dashed #ffd100';
+                    dividerDiv.style.position = 'relative';
+                    dividerDiv.style.textAlign = 'center';
+                    
+                    const dividerLabel = document.createElement('span');
+                    dividerLabel.innerText = 'WAITLIST / BENCH';
+                    dividerLabel.style.position = 'absolute';
+                    dividerLabel.style.top = '-9px';
+                    dividerLabel.style.left = '50%';
+                    dividerLabel.style.transform = 'translateX(-50%)';
+                    dividerLabel.style.background = '#0d0f12';
+                    dividerLabel.style.padding = '0 10px';
+                    dividerLabel.style.fontSize = '0.7rem';
+                    dividerLabel.style.color = '#666';
+                    dividerLabel.style.letterSpacing = '1px';
+                    dividerLabel.style.fontWeight = 'bold';
+                    
+                    dividerDiv.appendChild(dividerLabel);
+                    listContainer.appendChild(dividerDiv);
+                }
+            });
         }
-    } 
+async function signIn(faction) {
+            const username = document.getElementById('username').value.trim();
+            const chosenClass = document.getElementById('player-class').value;
+            
+            if (!username) return alert("Please enter your character name!");
+            if (!chosenClass) return alert("Please select your character class!");
+            
+            if (chosenClass === "Paladin" && faction === "Horde") {
+                return alert("Error: Paladins can only join the Alliance!");
+            }
+            if (chosenClass === "Shaman" && faction === "Alliance") {
+                return alert("Error: Shamans can only join the Horde!");
+            }
+            
+            let customId = localStorage.getItem('wsg_mesh_user_id');
+            if (!customId) {
+                customId = 'char_' + Math.random().toString(36).substr(2, 9);
+                localStorage.setItem('wsg_mesh_user_id', customId);
+            }
+            currentUserId = customId;
+            
+            await supabaseFetch(`?id=eq.${currentUserId}`, { method: "DELETE" });
+            
+            const { error: dbError = null } = await supabaseFetch("", {
+                method: "POST",
+                body: {
+                    id: currentUserId,
+                    username: username,
+                    faction: faction,
+                    player_class: chosenClass,
+                    joined_at: new Date().toISOString(),
+                    last_active: new Date().toISOString(),
+                    is_in_game: false
+                }
+            });
+            
+            if (dbError) return alert("Queue Error: Database transaction rejected. Check table configurations.");
+            
+            localStorage.setItem('wsg_mesh_name', username);
+            localStorage.setItem('wsg_mesh_faction', faction);
+            localStorage.setItem('wsg_mesh_class', chosenClass);
+            
+            showQueuedState(username, faction, chosenClass);
+            updateDashboardDisplays();
+            startAfkClock();
+        }
 
-    function checkLocalSession() { 
-        const localId = localStorage.getItem('wsg_mesh_user_id'); 
-        const localName = localStorage.getItem('wsg_mesh_name'); 
-        const localFaction = localStorage.getItem('wsg_mesh_faction'); 
-        const localClass = localStorage.getItem('wsg_mesh_class'); 
-        
-        if (localId && localName && localFaction && localClass) { 
-            currentUserId = localId; 
-            showQueuedState(localName, localFaction, localClass); 
-            startAfkClock(); 
-        } 
-    } 
+        async function toggleGameStatus() {
+            if (!currentUserId) return;
+            const me = activeRosterData.find(p => p.id === currentUserId);
+            if (!me) return;
+            
+            const targetState = !me.is_in_game;
+            
+            const { error } = await supabaseFetch(`?id=eq.${currentUserId}`, {
+                method: "PATCH",
+                body: { 
+                    is_in_game: targetState,
+                    last_active: new Date().toISOString()
+                }
+            });
+            
+            if (!error) {
+                updateDashboardDisplays();
+            }
+        }
 
-    function showQueuedState(name, faction, playerClass) { 
-        const display = document.getElementById('user-display'); 
-        display.innerText = `${name} (${playerClass})`; 
-        display.className = `class-${playerClass.toLowerCase()}`; 
-        document.getElementById('auth-section').classList.add('hidden'); 
-        document.getElementById('queued-section').classList.remove('hidden'); 
-    } 
+        async function leaveQueue() {
+            if (!currentUserId) return;
+            await supabaseFetch(`?id=eq.${currentUserId}`, { method: "DELETE" });
+            currentUserId = null;
+            
+            localStorage.removeItem('wsg_mesh_name');
+            localStorage.removeItem('wsg_mesh_faction');
+            localStorage.removeItem('wsg_mesh_class');
+            
+            clearInterval(afkCheckInterval);
+            document.getElementById('afk-warning-text').innerText = '';
+            document.getElementById('auth-section').classList.remove('hidden');
+            document.getElementById('queued-section').classList.add('hidden');
+            updateDashboardDisplays();
+        }
 
-    document.getElementById('btn-join-alliance').addEventListener('click', () => signIn('Alliance')); 
-    document.getElementById('btn-join-horde').addEventListener('click', () => signIn('Horde')); 
-    document.getElementById('btn-leave-queue').addEventListener('click', leaveQueue); 
-    document.getElementById('btn-refresh-queue').addEventListener('click', refreshActivityState); 
+        function startAfkClock() {
+            clearInterval(afkCheckInterval);
+            afkCheckInterval = setInterval(async () => {
+                if (!currentUserId) return;
+                const me = activeRosterData.find(p => p.id === currentUserId);
+                if (!me) return;
+                
+                const lastActiveTime = new Date(me.last_active).getTime();
+                const elapsedMs = Date.now() - lastActiveTime;
+                const remainingSecs = Math.max(0, 3600 - Math.floor(elapsedMs / 1000));
+                const warningLabel = document.getElementById('afk-warning-text');
+                
+                if (remainingSecs <= 0) {
+                    alert("You have been removed from the queue due to 1 hour of inactivity.");
+                    leaveQueue();
+                } else if (remainingSecs <= 60) {
+                    warningLabel.innerText = `Inactivity warning: Removing in ${remainingSecs}s! Click 'Still Active' to reset.`;
+                } else {
+                    const remainingMins = Math.ceil(remainingSecs / 60);
+                    warningLabel.innerText = `AFK Auto-Timeout in: ${remainingMins}m`;
+                }
+            }, 1000);
+        }
 
-    window.addEventListener('DOMContentLoaded', init);
-</script>
+        async function refreshActivityState() {
+            if (!currentUserId) return;
+            const { error = null } = await supabaseFetch(`?id=eq.${currentUserId}`, {
+                method: "PATCH",
+                body: { 
+                    last_active: new Date().toISOString(),
+                    is_in_game: false
+                }
+            });
+            if (!error) {
+                alert("Your queue status has been extended for another hour!");
+                updateDashboardDisplays();
+            }
+        }
+
+        async function checkAfkTimeout() {
+            if (activeRosterData.length === 0) return;
+            for (const p of activeRosterData) {
+                if (p.id === currentUserId) continue;
+                
+                const lastActiveTime = p.last_active ? new Date(p.last_active).getTime() : 0;
+                const idleMs = Date.now() - lastActiveTime;
+                if (lastActiveTime && idleMs > 3660000) { 
+                    await supabaseFetch(`?id=eq.${p.id}`, { method: "DELETE" });
+                }
+            }
+        }
+
+        function checkLocalSession() {
+            const localId = localStorage.getItem('wsg_mesh_user_id');
+            const localName = localStorage.getItem('wsg_mesh_name');
+            const localFaction = localStorage.getItem('wsg_mesh_faction');
+            const localClass = localStorage.getItem('wsg_mesh_class');
+            
+            if (localId && localName && localFaction && localClass) {
+                currentUserId = localId;
+                showQueuedState(localName, localFaction, localClass);
+                startAfkClock();
+            }
+        }
+
+        function showQueuedState(name, faction, playerClass) {
+            const display = document.getElementById('user-display');
+            display.innerText = `${name} (${playerClass})`;
+            display.className = `class-${playerClass.toLowerCase()}`;
+            document.getElementById('auth-section').classList.add('hidden');
+            document.getElementById('queued-section').classList.remove('hidden');
+        }
+
+        document.getElementById('btn-join-alliance').addEventListener('click', () => signIn('Alliance'));
+        document.getElementById('btn-join-horde').addEventListener('click', () => signIn('Horde'));
+        document.getElementById('btn-leave-queue').addEventListener('click', leaveQueue);
+        document.getElementById('btn-refresh-queue').addEventListener('click', refreshActivityState);
+        document.getElementById('btn-toggle-ingame').addEventListener('click', toggleGameStatus);
+
+        window.addEventListener('DOMContentLoaded', init);
+    </script>
 </body>
 </html>
